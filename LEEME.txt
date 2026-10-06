@@ -1,0 +1,8 @@
+OPCION A (local, en Windows con Python 3.11): doble clic en compilar_en_windows.bat
+  -> el .exe queda en dist\MascotaVirtual3D.exe
+OPCION B (GitHub): sube esta carpeta a un repo, y ejecuta:
+  git tag v2.5.0 && git push origin v2.5.0
+  (o Actions > "Compilar y Publicar" > Run workflow para solo obtener el artefacto)
+Antes: cambia "Fueradetv-Lucas/mascota" en app_launcher.py y version.json.
+Para publicar una actualización: sube CURRENT_VERSION en app_launcher.py, actualiza version.json,
+haz commit y crea la etiqueta nueva (ej. v2.6.0).
