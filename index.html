@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full select-none overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mascota Virtual 3D - Windows Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        winBg: '#0b1329',
+                        winCard: 'rgba(23, 32, 54, 0.75)',
+                        winGlass: 'rgba(15, 23, 42, 0.85)',
+                        winAccent: '#0078d4',
+                        winAccentHover: '#106ebe',
+                        neonGlow: '#00f0ff'
+                    },
+                    animation: {
+                        'float-up': 'floatUp 1.5s ease-out forwards',
+                        'glow-pulse': 'glowPulse 2s infinite alternate'
+                    },
+                    keyframes: {
+                        floatUp: {
+                            '0%': { opacity: '0', transform: 'translateY(0) scale(0.8)' },
+                            '20%': { opacity: '1', transform: 'translateY(-15px) scale(1.1)' },
+                            '100%': { opacity: '0', transform: 'translateY(-45px) scale(1)' }
+                        },
+                        glowPulse: {
+                            '0%': { boxShadow: '0 0 10px rgba(0, 120, 212, 0.3)' },
+                            '100%': { boxShadow: '0 0 25px rgba(0, 120, 212, 0.8)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Segoe UI style (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js 3D Engine Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', 'Outfit', sans-serif;
+            background: radial-gradient(circle at 50% 30%, #1e293b 0%, #0f172a 60%, #020617 100%);
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Fluent Mica / Acrylic Glass effect */
+        .win-mica {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .win-taskbar {
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .win-menu {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.7);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 120, 212, 0.6); }
+
+        /* Wallpaper themes */
+        .wp-default { background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 70%, #020617 100%); }
+        .wp-bloom { background: radial-gradient(circle at center, #0284c7 0%, #1e1b4b 60%, #090514 100%); }
+        .wp-cyber { background: radial-gradient(circle at center, #701a75 0%, #0f172a 70%, #020617 100%); }
+        .wp-emerald { background: radial-gradient(circle at center, #064e3b 0%, #022c22 70%, #020617 100%); }
+
+        canvas { outline: none; }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between text-slate-100 h-screen w-screen overflow-hidden">
+
+    <div id="desktop-wallpaper" class="absolute inset-0 wp-default transition-all duration-700 pointer-events-none"></div>
+
+    <!-- DESKTOP SHORTCUTS GRID -->
+    <div class="relative z-10 p-6 grid grid-flow-col auto-cols-max grid-rows-6 gap-6 w-fit pointer-events-auto">
+        <button id="shortcut-pet" class="group flex flex-col items-center justify-center w-20 p-2 rounded-xl hover:bg-white/10 transition text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 shadow-lg flex items-center justify-center text-xl text-white group-hover:scale-105 transition">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <span class="text-xs mt-1.5 font-medium text-slate-200 drop-shadow">Mascota 3D</span>
+        </button>
+
+        <button id="shortcut-quests" class="group flex flex-col items-center justify-center w-20 p-2 rounded-xl hover:bg-white/10 transition text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 shadow-lg flex items-center justify-center text-xl text-white group-hover:scale-105 transition">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <span class="text-xs mt-1.5 font-medium text-slate-200 drop-shadow">Retos Diarios</span>
+        </button>
+
+        <button id="shortcut-agenda" class="group flex flex-col items-center justify-center w-20 p-2 rounded-xl hover:bg-white/10 transition text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 shadow-lg flex items-center justify-center text-xl text-white group-hover:scale-105 transition">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <span class="text-xs mt-1.5 font-medium text-slate-200 drop-shadow">Agenda</span>
+        </button>
+
+        <button id="shortcut-settings" class="group flex flex-col items-center justify-center w-20 p-2 rounded-xl hover:bg-white/10 transition text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 shadow-lg flex items-center justify-center text-xl text-white group-hover:scale-105 transition">
+                <i class="fa-solid fa-gear"></i>
+            </div>
+            <span class="text-xs mt-1.5 font-medium text-slate-200 drop-shadow">Configuración</span>
+        </button>
+    </div>
+
+    <!-- MAIN APPLICATION WINDOW -->
+    <div id="win-app" class="win-mica fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-[1050px] h-[85vh] max-h-[720px] rounded-2xl z-20 flex flex-col overflow-hidden shadow-2xl transition-all duration-300">
+        
+        <!-- WINDOW TITLEBAR (Windows Style) -->
+        <div id="win-titlebar" class="w-full bg-slate-950/80 px-4 py-2 flex items-center justify-between border-b border-white/10 cursor-move shrink-0">
+            <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                <div class="w-5 h-5 rounded-md bg-sky-500 flex items-center justify-center text-[10px] text-white">
+                    <i class="fa-solid fa-cubes"></i>
+                </div>
+                <span>Mascota Virtual 3D — Windows Edition v2.5</span>
+            </div>
+
+            <!-- Window Control Buttons -->
+            <div class="flex items-center gap-1">
+                <button id="win-btn-min" title="Minimizar" class="w-8 h-7 rounded hover:bg-white/10 flex items-center justify-center text-slate-300 transition text-xs">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <button id="win-btn-max" title="Maximizar / Restaurar" class="w-8 h-7 rounded hover:bg-white/10 flex items-center justify-center text-slate-300 transition text-xs">
+                    <i class="fa-regular fa-square"></i>
+                </button>
+                <button id="win-btn-close" title="Cerrar" class="w-8 h-7 rounded hover:bg-rose-600 flex items-center justify-center text-slate-300 hover:text-white transition text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- WINDOW MENU / STATUS BAR -->
+        <div class="bg-slate-900/90 px-4 py-1.5 border-b border-white/5 flex justify-between items-center text-xs text-slate-400 shrink-0">
+            <div class="flex items-center gap-4 font-medium">
+                <button id="top-btn-pet" class="hover:text-sky-400 transition flex items-center gap-1">
+                    <i class="fa-solid fa-paw text-sky-400"></i> Cambiar Especie
+                </button>
+                <button id="top-btn-bg" class="hover:text-sky-400 transition flex items-center gap-1">
+                    <i class="fa-solid fa-palette text-amber-400"></i> Fondo Windows
+                </button>
+                <button id="top-btn-quests" class="hover:text-sky-400 transition flex items-center gap-1">
+                    <i class="fa-solid fa-medal text-emerald-400"></i> Logros y Retos
+                </button>
+            </div>
+
+            <!-- Level & Streak Badges -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full text-amber-400 font-bold text-[11px]">
+                    <i class="fa-solid fa-fire animate-bounce"></i>
+                    <span id="streak-count">1</span> Días
+                </div>
+                <div class="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/30 px-2.5 py-0.5 rounded-full text-sky-300 font-bold text-[11px]">
+                    <span id="badge-level">Niv. 1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- APP INNER CONTENT -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- LEFT PANEL: 3D PET VIEWPORT -->
+            <div class="flex-1 relative flex flex-col justify-between p-4 overflow-hidden border-r border-white/10">
+                <div id="xp-floating-container" class="absolute inset-0 pointer-events-none z-30 overflow-hidden"></div>
+
+                <!-- Speech Box -->
+                <div class="relative z-20">
+                    <div id="speech-box" class="bg-slate-900/90 border border-sky-500/30 rounded-2xl p-3 shadow-xl backdrop-blur transition-all duration-300">
+                        <div class="flex items-start justify-between gap-2">
+                            <p id="speech-text" class="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed flex-1">
+                                ¡Hola! Bienvenido a la app para Windows. Puedes interactuar en 3D, girarme o acariciarme con el cursor.
+                            </p>
+                            <span id="voice-indicator" class="hidden text-sky-400 text-xs animate-pulse shrink-0 pt-0.5">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- THREE.JS 3D CANVAS CONTAINER -->
+                <div class="relative flex-1 w-full h-full my-2 flex items-center justify-center cursor-grab active:cursor-grabbing" id="canvas-container">
+                    <div id="3d-hint" class="absolute bottom-2 bg-slate-950/70 backdrop-blur px-3 py-1 rounded-full text-[10px] text-sky-300 border border-sky-500/30 pointer-events-none flex items-center gap-1.5 z-10">
+                        <i class="fa-solid fa-hand-pointer animate-bounce"></i> Clic y arrastra para rotar • Clic en la mascota para cosquillas
+                    </div>
+                </div>
+
+                <!-- XP Progress Bar -->
+                <div class="w-full bg-slate-950/80 rounded-full h-3.5 border border-white/10 p-0.5 flex items-center relative overflow-hidden shrink-0">
+                    <div id="bar-xp" class="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500" style="width: 20%;"></div>
+                    <span id="text-xp-progress" class="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold font-mono text-slate-100 drop-shadow">20 / 100 XP</span>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: DASHBOARD & HABITS CONTROLS -->
+            <div class="w-80 bg-slate-950/40 p-4 flex flex-col justify-between space-y-4 overflow-y-auto custom-scrollbar shrink-0">
+                
+                <!-- Mascot Info Card -->
+                <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-3.5 space-y-2">
+                    <div class="flex items-center gap-3">
+                        <div id="pet-avatar-bg" class="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-xl text-white shadow-lg">
+                            <i id="pet-avatar-icon" class="fa-solid fa-robot"></i>
+                        </div>
+                        <div>
+                            <h2 id="header-pet-name" class="font-bold text-base text-sky-400">Boty 3D</h2>
+                            <p id="pet-type-label" class="text-xs text-slate-400 font-semibold">Robot Cibernético</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VITAL STATUS METERS -->
+                <div class="space-y-3 bg-slate-900/80 border border-white/10 p-3.5 rounded-2xl">
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line text-sky-400"></i> Estado Vital
+                    </h3>
+
+                    <!-- 1. Energía -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+                                <i class="fa-solid fa-bolt text-emerald-400"></i> Energía / Carga
+                            </span>
+                            <span id="val-energy" class="font-mono text-emerald-400 font-bold">80%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
+                            <div id="bar-energy" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 80%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Nutrición / Mente -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+                                <i class="fa-solid fa-apple-whole text-amber-400"></i> Alimento / Lectura
+                            </span>
+                            <span id="val-food" class="font-mono text-amber-400 font-bold">65%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
+                            <div id="bar-food" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 65%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Ejercicio / Ánimo -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+                                <i class="fa-solid fa-face-laugh-beam text-rose-400"></i> Ánimo / Deporte
+                            </span>
+                            <span id="val-play" class="font-mono text-rose-400 font-bold">50%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
+                            <div id="bar-play" class="bg-rose-500 h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUICK ACTIONS BUTTONS -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-gamepad text-sky-400"></i> Acciones de Hábitos
+                    </h3>
+
+                    <div class="grid grid-cols-1 gap-2">
+                        <button id="btn-charge" class="group bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 hover:border-emerald-500 p-2.5 rounded-xl flex items-center justify-between transition shadow-md">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-200">Cargar Batería</span>
+                            </div>
+                            <span class="text-xs font-mono font-bold text-emerald-400">+15 XP</span>
+                        </button>
+
+                        <button id="btn-read" class="group bg-slate-900 hover:bg-slate-800 border border-amber-500/30 hover:border-amber-500 p-2.5 rounded-xl flex items-center justify-between transition shadow-md">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-book-open"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-200">Alimentar / Leer</span>
+                            </div>
+                            <span class="text-xs font-mono font-bold text-amber-400">+25 XP</span>
+                        </button>
+
+                        <button id="btn-sport" class="group bg-slate-900 hover:bg-slate-800 border border-rose-500/30 hover:border-rose-500 p-2.5 rounded-xl flex items-center justify-between transition shadow-md">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-person-running"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-200">Ejercicio y Baile</span>
+                            </div>
+                            <span class="text-xs font-mono font-bold text-rose-400">+35 XP</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- WINDOWS TASKBAR -->
+    <div class="win-taskbar relative z-30 w-full h-12 flex items-center justify-between px-3">
+        <!-- Start Button & Centered App Icons -->
+        <div class="flex-1 flex items-center justify-center gap-1.5">
+            <button id="win-start-btn" title="Inicio" class="w-10 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-sky-400 text-lg transition active:scale-95">
+                <i class="fa-brands fa-windows"></i>
+            </button>
+
+            <div class="h-5 w-px bg-white/10 mx-1"></div>
+
+            <button id="taskbar-pet-icon" title="Mascota Virtual 3D" class="relative w-10 h-9 rounded-lg bg-white/10 border border-sky-500/50 flex items-center justify-center text-sky-300 text-base shadow transition">
+                <i class="fa-solid fa-robot"></i>
+                <div class="absolute -bottom-1 w-2 h-0.5 bg-sky-400 rounded-full"></div>
+            </button>
+
+            <button id="taskbar-quests-icon" title="Retos Diarios" class="w-10 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-amber-400 text-base transition">
+                <i class="fa-solid fa-trophy"></i>
+            </button>
+
+            <button id="taskbar-agenda-icon" title="Agenda" class="w-10 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-emerald-400 text-base transition">
+                <i class="fa-solid fa-calendar-check"></i>
+            </button>
+        </div>
+
+        <!-- Windows System Tray -->
+        <div class="flex items-center gap-3 text-xs text-slate-300 font-medium px-2">
+            <i class="fa-solid fa-chevron-up text-[10px] text-slate-400"></i>
+            <i class="fa-solid fa-wifi hover:text-white transition"></i>
+            <i class="fa-solid fa-volume-high hover:text-white transition"></i>
+            <i class="fa-solid fa-battery-three-quarters text-emerald-400"></i>
+
+            <div class="h-4 w-px bg-white/10"></div>
+
+            <div class="text-right leading-tight">
+                <div id="win-clock" class="font-semibold text-slate-100">12:00</div>
+                <div id="win-date" class="text-[10px] text-slate-400">01/10/2026</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WINDOWS START MENU -->
+    <div id="win-start-menu" class="win-menu fixed bottom-14 left-1/2 -translate-x-1/2 w-80 sm:w-96 rounded-2xl z-40 p-4 hidden transition-all duration-200">
+        <div class="mb-3 border-b border-white/10 pb-2 flex justify-between items-center">
+            <span class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-brands fa-windows"></i> Menú Inicio
+            </span>
+            <span id="start-menu-user" class="text-xs text-slate-400 font-semibold">Carlos</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 mb-4">
+            <button id="menu-item-pet" class="p-3 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-xl flex flex-col items-center gap-1.5 transition">
+                <i class="fa-solid fa-robot text-sky-400 text-lg"></i>
+                <span class="text-[10px] font-bold text-slate-200">Mascota</span>
+            </button>
+            <button id="menu-item-agenda" class="p-3 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-xl flex flex-col items-center gap-1.5 transition">
+                <i class="fa-solid fa-calendar-check text-emerald-400 text-lg"></i>
+                <span class="text-[10px] font-bold text-slate-200">Agenda</span>
+            </button>
+            <button id="menu-item-settings" class="p-3 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-xl flex flex-col items-center gap-1.5 transition">
+                <i class="fa-solid fa-gear text-purple-400 text-lg"></i>
+                <span class="text-[10px] font-bold text-slate-200">Ajustes</span>
+            </button>
+        </div>
+
+        <div class="bg-slate-950/60 p-2.5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
+            <span class="text-slate-300">Apagar o Reiniciar App</span>
+            <button id="btn-restart-app" class="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg font-bold transition">
+                <i class="fa-solid fa-power-off mr-1"></i> Reiniciar
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: SELECTOR DE MASCOTA 3D -->
+    <div id="modal-pet-selector" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="win-mica w-full max-w-md rounded-2xl p-5 border border-white/10 space-y-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                <h2 class="text-sm font-bold text-sky-400 flex items-center gap-2">
+                    <i class="fa-solid fa-paw"></i> Seleccionar Especie 3D
+                </h2>
+                <button id="close-pet-selector" class="text-slate-400 hover:text-white text-base">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-3" id="pet-species-grid"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: RETOS Y LOGROS -->
+    <div id="modal-quests" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="win-mica w-full max-w-lg rounded-2xl p-5 border border-white/10 space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2 shrink-0">
+                <h2 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-trophy"></i> Retos y Desbloqueos de Nivel
+                </h2>
+                <button id="close-quests" class="text-slate-400 hover:text-white text-base">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 text-xs pr-1">
+                <div class="bg-slate-900/80 border border-amber-500/30 p-3 rounded-xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-amber-300">Desafíos de Hoy</span>
+                        <span id="quest-count-label" class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">0/4</span>
+                    </div>
+                    <div class="space-y-1.5" id="quests-list"></div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-300 mb-2">Desbloqueos de Nivel</h3>
+                    <div class="space-y-2" id="unlocks-roadmap"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AGENDA DE HÁBITOS -->
+    <div id="modal-agenda" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="win-mica w-full max-w-md rounded-2xl p-5 border border-white/10 space-y-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                <h2 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check"></i> Agenda de Recordatorios
+                </h2>
+                <button id="close-agenda" class="text-slate-400 hover:text-white text-base">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="bg-slate-900/90 p-3 rounded-xl border border-white/10 space-y-2 text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 font-semibold mb-1">Hora:</label>
+                        <input type="time" id="input-rem-time" value="09:00" class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-slate-100 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-semibold mb-1">Actividad:</label>
+                        <select id="select-rem-type" class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-slate-100 outline-none">
+                            <option value="sport">🏃🏻‍♂️ Ejercicio</option>
+                            <option value="read">📚 Lectura</option>
+                            <option value="charge">🔋 Descanso</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-400 font-semibold mb-1">Nota:</label>
+                    <input type="text" id="input-rem-note" placeholder="Ej: Correr 15 min" class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-slate-100 outline-none">
+                </div>
+                <button id="btn-add-reminder" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-1.5 rounded-lg transition text-xs">
+                    + Añadir Recordatorio
+                </button>
+            </div>
+            <div id="reminders-list-container" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: SETTINGS & FONDO WINDOWS -->
+    <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="win-mica w-full max-w-md rounded-2xl p-5 border border-white/10 space-y-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                <h2 class="text-sm font-bold text-purple-400 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> Ajustes de Windows App
+                </h2>
+                <button id="close-settings" class="text-slate-400 hover:text-white text-base">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Nombre Mascota:</label>
+                    <input type="text" id="input-pet-name" value="Boty" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-slate-100 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Usuario Windows:</label>
+                    <input type="text" id="input-user-name" value="Carlos" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-slate-100 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-2">Wallpaper de Escritorio:</label>
+                    <div class="grid grid-cols-2 gap-2" id="wallpaper-selector-grid">
+                        <button data-wp="wp-default" class="btn-wp-opt border border-sky-400 p-2 rounded-xl bg-slate-900 text-xs font-bold text-sky-300">Gris Cósmico</button>
+                        <button data-wp="wp-bloom" class="btn-wp-opt border border-white/10 p-2 rounded-xl bg-slate-900 text-xs font-bold text-slate-300">Azul Windows</button>
+                        <button data-wp="wp-cyber" class="btn-wp-opt border border-white/10 p-2 rounded-xl bg-slate-900 text-xs font-bold text-slate-300">Cyber Neon</button>
+                        <button data-wp="wp-emerald" class="btn-wp-opt border border-white/10 p-2 rounded-xl bg-slate-900 text-xs font-bold text-slate-300">Esmeralda</button>
+                    </div>
+                </div>
+            </div>
+            <button id="save-settings" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl transition text-xs">
+                Guardar Configuración
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            petName: 'Boty',
+            userName: 'Carlos',
+            species: 'robot',
+            wallpaper: 'wp-default',
+            voiceEnabled: true,
+            level: 1,
+            xp: 20,
+            streakDays: 1,
+            energy: 80,
+            food: 65,
+            play: 50,
+            dailyQuests: { charge: false, read: false, sport: false, agenda: false },
+            reminders: []
+        };
+
+        const SPECIES_DATA = {
+            robot: { id: 'robot', name: 'Boty 3D', category: 'Robot Cibernético', icon: 'fa-robot', color: 'text-sky-400', pitch: 1.2, rate: 1.1 },
+            animal: { id: 'animal', name: 'Michi 3D', category: 'Gatito Virtual', icon: 'fa-cat', color: 'text-amber-400', pitch: 1.6, rate: 1.2 },
+            plant: { id: 'plant', name: 'Floro 3D', category: 'Planta Parlante', icon: 'fa-seedling', color: 'text-emerald-400', pitch: 0.9, rate: 1.0 },
+            mythical: { id: 'mythical', name: 'Draky 3D', category: 'Bebé Dragón', icon: 'fa-dragon', color: 'text-purple-400', pitch: 1.4, rate: 1.0 }
+        };
+
+        const LEVELS = [
+            { level: 1, xpNeeded: 100, title: 'Novato', desc: 'Acceso Base Windows' },
+            { level: 2, xpNeeded: 250, title: 'Constante', desc: 'Efectos de Brillo' },
+            { level: 3, xpNeeded: 450, title: 'Atleta', desc: 'Gafas de Sol 🕶️' },
+            { level: 4, xpNeeded: 700, title: 'Maestro', desc: 'Luces Neon ⚡' },
+            { level: 5, xpNeeded: 1000, title: 'Gran Campeón', desc: 'Corona Real 👑' }
+        ];
+
+        // Web Audio Synthesizer
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!state.voiceEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'xp') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.setValueAtTime(659, now + 0.08);
+                    osc.frequency.setValueAtTime(783, now + 0.16);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now); osc.stop(now + 0.25);
+                }
+            } catch(e){}
+        }
+
+        function speak(text) {
+            playSound('click');
+            const speechText = document.getElementById('speech-text');
+            if (speechText) speechText.textContent = text;
+
+            if (state.voiceEnabled && 'speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                    const ut = new SpeechSynthesisUtterance(text);
+                    ut.lang = 'es-ES';
+                    const spec = SPECIES_DATA[state.species] || SPECIES_DATA.robot;
+                    ut.pitch = spec.pitch;
+                    ut.rate = spec.rate;
+                    window.speechSynthesis.speak(ut);
+                } catch(e){}
+            }
+        }
+
+        let scene, camera, renderer, currentPetMesh = null;
+        let isDragging = false, previousMouseX = 0, previousMouseY = 0;
+        let tickleAnimTimer = 0;
+
+        function init3DScene() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+
+            const width = container.clientWidth || 400;
+            const height = container.clientHeight || 350;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.set(0, 1.1, 5.5);
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            container.innerHTML = '';
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x0078d4, 1.2);
+            dirLight.position.set(5, 8, 5);
+            scene.add(dirLight);
+
+            const dom = renderer.domElement;
+            dom.addEventListener('mousedown', e => {
+                isDragging = true;
+                previousMouseX = e.clientX;
+                previousMouseY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', e => {
+                if (!isDragging || !currentPetMesh) return;
+                const deltaX = e.clientX - previousMouseX;
+                const deltaY = e.clientY - previousMouseY;
+
+                currentPetMesh.rotation.y += deltaX * 0.015;
+                currentPetMesh.rotation.x += deltaY * 0.01;
+                currentPetMesh.rotation.x = Math.max(-0.4, Math.min(0.4, currentPetMesh.rotation.x));
+
+                previousMouseX = e.clientX;
+                previousMouseY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            dom.addEventListener('click', () => {
+                tickleAnimTimer = 35;
+                playSound('click');
+                speak('¡Jejeje! ¡Me encantan las cosquillas en Windows!');
+            });
+
+            rebuildPet3D();
+            window.addEventListener('resize', onWindowResize);
+            animate3D();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !renderer || !camera) return;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        function rebuildPet3D() {
+            if (!scene) return;
+            if (currentPetMesh) scene.remove(currentPetMesh);
+
+            currentPetMesh = new THREE.Group();
+
+            if (state.species === 'robot') {
+                const headMat = new THREE.MeshStandardMaterial({ color: 0x0078d4, roughness: 0.2, metalness: 0.8 });
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.85, 32, 32), headMat);
+                head.position.y = 0.8;
+                currentPetMesh.add(head);
+
+                const visorMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.1 });
+                const visor = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.55, 0.4), visorMat);
+                visor.position.set(0, 0.85, 0.7);
+                currentPetMesh.add(visor);
+
+                const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+                const eyeL = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.3, 16), eyeMat);
+                eyeL.rotation.z = Math.PI / 2;
+                eyeL.position.set(-0.35, 0.85, 0.88);
+                const eyeR = eyeL.clone();
+                eyeR.position.x = 0.35;
+                currentPetMesh.add(eyeL);
+                currentPetMesh.add(eyeR);
+
+                const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 0.9, 32), headMat);
+                body.position.y = -0.1;
+                currentPetMesh.add(body);
+            } else if (state.species === 'animal') {
+                const furMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.6 });
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 32, 32), furMat);
+                head.position.y = 0.8;
+                currentPetMesh.add(head);
+
+                const earMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e });
+                const earL = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 16), earMat);
+                earL.position.set(-0.6, 1.6, 0.1);
+                earL.rotation.z = 0.3;
+                const earR = earL.clone();
+                earR.position.x = 0.6;
+                earR.rotation.z = -0.3;
+                currentPetMesh.add(earL);
+                currentPetMesh.add(earR);
+
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 24), furMat);
+                body.position.y = -0.15;
+                currentPetMesh.add(body);
+            } else if (state.species === 'plant') {
+                const potMat = new THREE.MeshStandardMaterial({ color: 0xea580c });
+                const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.5, 0.9, 24), potMat);
+                pot.position.y = -0.5;
+                currentPetMesh.add(pot);
+
+                const headMat = new THREE.MeshStandardMaterial({ color: 0x10b981 });
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 24), headMat);
+                head.position.y = 0.9;
+                currentPetMesh.add(head);
+            } else {
+                const dragMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6 });
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 24), dragMat);
+                head.position.y = 0.8;
+                currentPetMesh.add(head);
+
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), dragMat);
+                body.position.y = -0.2;
+                currentPetMesh.add(body);
+            }
+
+            // Level Unlocks
+            if (state.level >= 3) {
+                const glasses = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.22, 0.1), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+                glasses.position.set(0, 0.88, 0.9);
+                currentPetMesh.add(glasses);
+            }
+
+            scene.add(currentPetMesh);
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            const time = Date.now() * 0.003;
+
+            if (currentPetMesh && !isDragging) {
+                currentPetMesh.position.y = Math.sin(time * 2) * 0.08;
+                currentPetMesh.rotation.y = Math.sin(time * 0.8) * 0.12;
+
+                if (tickleAnimTimer > 0) {
+                    tickleAnimTimer--;
+                    currentPetMesh.rotation.z = Math.sin(tickleAnimTimer * 0.6) * 0.25;
+                } else {
+                    currentPetMesh.rotation.z = 0;
+                }
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function addXP(amount, questKey = null) {
+            state.xp += amount;
+            playSound('xp');
+
+            if (questKey && state.dailyQuests[questKey] === false) {
+                state.dailyQuests[questKey] = true;
+            }
+
+            const currentLvl = LEVELS.find(l => l.level === state.level);
+            if (currentLvl && state.xp >= currentLvl.xpNeeded) {
+                state.level++;
+                speak(`¡Felicidades ${state.userName}! Has subido al Nivel ${state.level}`);
+                rebuildPet3D();
+            }
+
+            updateUI();
+        }
+
+        function updateUI() {
+            const spec = SPECIES_DATA[state.species] || SPECIES_DATA.robot;
+
+            document.getElementById('header-pet-name').textContent = state.petName;
+            document.getElementById('pet-type-label').textContent = spec.category;
+            document.getElementById('pet-avatar-icon').className = `fa-solid ${spec.icon}`;
+            document.getElementById('badge-level').textContent = `Niv. ${state.level}`;
+            document.getElementById('streak-count').textContent = state.streakDays;
+            document.getElementById('start-menu-user').textContent = state.userName;
+
+            const currentLvl = LEVELS.find(l => l.level === state.level);
+            const targetXP = currentLvl ? currentLvl.xpNeeded : (state.level * 250);
+            const xpPct = Math.min(100, Math.round((state.xp / targetXP) * 100));
+
+            document.getElementById('bar-xp').style.width = `${xpPct}%`;
+            document.getElementById('text-xp-progress').textContent = `${state.xp} / ${targetXP} XP`;
+
+            document.getElementById('val-energy').textContent = `${Math.round(state.energy)}%`;
+            document.getElementById('bar-energy').style.width = `${state.energy}%`;
+
+            document.getElementById('val-food').textContent = `${Math.round(state.food)}%`;
+            document.getElementById('bar-food').style.width = `${state.food}%`;
+
+            document.getElementById('val-play').textContent = `${Math.round(state.play)}%`;
+            document.getElementById('bar-play').style.width = `${state.play}%`;
+
+            document.getElementById('desktop-wallpaper').className = `absolute inset-0 ${state.wallpaper} transition-all duration-700 pointer-events-none`;
+
+            renderPetSelector();
+            renderQuests();
+            renderReminders();
+        }
+
+        function renderPetSelector() {
+            const grid = document.getElementById('pet-species-grid');
+            if (!grid) return;
+
+            grid.innerHTML = Object.values(SPECIES_DATA).map(sp => {
+                const isSelected = state.species === sp.id;
+                return `
+                    <button data-species="${sp.id}" class="btn-choose-species border ${isSelected ? 'border-sky-400 bg-sky-500/20' : 'border-white/10 bg-slate-900'} p-3 rounded-xl flex flex-col items-center gap-1.5 transition hover:border-sky-400">
+                        <i class="fa-solid ${sp.icon} text-2xl ${sp.color}"></i>
+                        <span class="font-bold text-xs text-slate-200">${sp.name}</span>
+                    </button>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.btn-choose-species').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.species = btn.dataset.species;
+                    const spec = SPECIES_DATA[state.species];
+                    state.petName = spec.name;
+                    rebuildPet3D();
+                    updateUI();
+                    document.getElementById('modal-pet-selector').classList.add('hidden');
+                    speak(`¡Has cambiado a ${spec.name}!`);
+                });
+            });
+        }
+
+        function renderQuests() {
+            const qList = document.getElementById('quests-list');
+            if (!qList) return;
+
+            const quests = [
+                { key: 'charge', name: 'Cargar Energía Batería', reward: '+15 XP', done: state.dailyQuests.charge },
+                { key: 'read', name: 'Lectura / Alimentar Mente', reward: '+25 XP', done: state.dailyQuests.read },
+                { key: 'sport', name: 'Ejercicio y Ejercicio 3D', reward: '+35 XP', done: state.dailyQuests.sport },
+                { key: 'agenda', name: 'Añadir Recordatorio', reward: '+20 XP', done: state.dailyQuests.agenda }
+            ];
+
+            const doneCount = quests.filter(q => q.done).length;
+            document.getElementById('quest-count-label').textContent = `${doneCount}/4`;
+
+            qList.innerHTML = quests.map(q => `
+                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-white/5">
+                    <span class="text-slate-200">${q.name}</span>
+                    <span class="font-bold text-amber-400">${q.reward}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderReminders() {
+            const container = document.getElementById('reminders-list-container');
+            if (!container) return;
+
+            if (state.reminders.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">Sin recordatorios activos.</p>';
+                return;
+            }
+
+            container.innerHTML = state.reminders.map((r, i) => `
+                <div class="bg-slate-900 border border-white/10 p-2 rounded-lg flex justify-between items-center text-xs">
+                    <div>
+                        <span class="font-bold text-emerald-400 mr-2">${r.time}</span>
+                        <span class="text-slate-200">${r.note || r.type}</span>
+                    </div>
+                    <button onclick="deleteReminder(${i})" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        window.deleteReminder = function(index) {
+            state.reminders.splice(index, 1);
+            renderReminders();
+        };
+
+        function updateClock() {
+            const now = new Date();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+
+            document.getElementById('win-clock').textContent = `${hrs}:${mins}`;
+            document.getElementById('win-date').textContent = `${day}/${month}/${year}`;
+        }
+        setInterval(updateClock, 10000);
+
+        // Windows Draggable Window Logic
+        const winApp = document.getElementById('win-app');
+        const titlebar = document.getElementById('win-titlebar');
+        let isWinDragging = false, winOffsetX = 0, winOffsetY = 0;
+
+        titlebar.addEventListener('mousedown', e => {
+            if (e.target.closest('button')) return;
+            isWinDragging = true;
+            winOffsetX = e.clientX - winApp.offsetLeft;
+            winOffsetY = e.clientY - winApp.offsetTop;
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isWinDragging) return;
+            winApp.style.left = `${e.clientX - winOffsetX}px`;
+            winApp.style.top = `${e.clientY - winOffsetY}px`;
+            winApp.style.transform = 'none';
+        });
+
+        window.addEventListener('mouseup', () => { isWinDragging = false; });
+
+        document.getElementById('win-btn-close').addEventListener('click', () => {
+            winApp.classList.add('hidden');
+        });
+
+        document.getElementById('shortcut-pet').addEventListener('click', () => {
+            winApp.classList.remove('hidden');
+            onWindowResize();
+        });
+
+        document.getElementById('win-btn-min').addEventListener('click', () => {
+            winApp.classList.add('hidden');
+        });
+
+        document.getElementById('win-start-btn').addEventListener('click', () => {
+            const menu = document.getElementById('win-start-menu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Modal triggers
+        document.getElementById('top-btn-pet').addEventListener('click', () => document.getElementById('modal-pet-selector').classList.remove('hidden'));
+        document.getElementById('close-pet-selector').addEventListener('click', () => document.getElementById('modal-pet-selector').classList.add('hidden'));
+
+        document.getElementById('top-btn-quests').addEventListener('click', () => document.getElementById('modal-quests').classList.remove('hidden'));
+        document.getElementById('shortcut-quests').addEventListener('click', () => document.getElementById('modal-quests').classList.remove('hidden'));
+        document.getElementById('taskbar-quests-icon').addEventListener('click', () => document.getElementById('modal-quests').classList.remove('hidden'));
+        document.getElementById('close-quests').addEventListener('click', () => document.getElementById('modal-quests').classList.add('hidden'));
+
+        document.getElementById('shortcut-agenda').addEventListener('click', () => document.getElementById('modal-agenda').classList.remove('hidden'));
+        document.getElementById('taskbar-agenda-icon').addEventListener('click', () => document.getElementById('modal-agenda').classList.remove('hidden'));
+        document.getElementById('close-agenda').addEventListener('click', () => document.getElementById('modal-agenda').classList.add('hidden'));
+
+        document.getElementById('top-btn-bg').addEventListener('click', () => document.getElementById('modal-settings').classList.remove('hidden'));
+        document.getElementById('shortcut-settings').addEventListener('click', () => document.getElementById('modal-settings').classList.remove('hidden'));
+        document.getElementById('close-settings').addEventListener('click', () => document.getElementById('modal-settings').classList.add('hidden'));
+
+        document.getElementById('btn-add-reminder').addEventListener('click', () => {
+            const time = document.getElementById('input-rem-time').value;
+            const type = document.getElementById('select-rem-type').value;
+            const note = document.getElementById('input-rem-note').value;
+            if (time) {
+                state.reminders.push({ time, type, note });
+                addXP(20, 'agenda');
+                renderReminders();
+                document.getElementById('input-rem-note').value = '';
+                document.getElementById('modal-agenda').classList.add('hidden');
+                speak(`Recordatorio añadido a las ${time}`);
+            }
+        });
+
+        document.querySelectorAll('.btn-wp-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.wallpaper = btn.dataset.wp;
+                updateUI();
+            });
+        });
+
+        document.getElementById('btn-charge').addEventListener('click', () => {
+            state.energy = Math.min(100, state.energy + 25);
+            addXP(15, 'charge');
+            speak('¡Carga de energía en Windows completada!');
+        });
+
+        document.getElementById('btn-read').addEventListener('click', () => {
+            state.food = Math.min(100, state.food + 25);
+            addXP(25, 'read');
+            speak('¡Alimento y mente fortalecidos!');
+        });
+
+        document.getElementById('btn-sport').addEventListener('click', () => {
+            state.play = Math.min(100, state.play + 30);
+            addXP(35, 'sport');
+            speak('¡Gran rutina de ejercicio en Windows!');
+        });
+
+        document.getElementById('save-settings').addEventListener('click', () => {
+            const petName = document.getElementById('input-pet-name').value;
+            const userName = document.getElementById('input-user-name').value;
+            if (petName) state.petName = petName;
+            if (userName) state.userName = userName;
+            updateUI();
+            document.getElementById('modal-settings').classList.add('hidden');
+            speak('¡Configuración de Windows guardada!');
+        });
+
+        document.getElementById('btn-restart-app').addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Initialize on window load
+        window.onload = () => {
+            init3DScene();
+            updateClock();
+            updateUI();
+            speak(`¡Bienvenido a Windows, ${state.userName}! Tu mascota 3D está lista.`);
+        };
+    </script>
+</body>
+</html>
